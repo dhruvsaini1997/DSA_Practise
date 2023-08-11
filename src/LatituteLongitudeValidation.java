@@ -1,31 +1,39 @@
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+//import java.util.List;
+//import java.util.regex.Matcher;
+//import java.util.regex.Pattern;
 
 public class LatituteLongitudeValidation {
-    public static boolean validateSubString(String stringz, boolean isLat) {
-        int len = stringz.length();
-        String pattern;
 
-//        if (isLat) {
-//            pattern = "^(\\+|-)?(?:90|(?:(?:[0-9]|[1-8][0-9])(\\.0{1,6})?))$";
-//        } else {
-//            pattern = "^(\\+|-)?(?:180|(?:(?:[0-9]|[1-9][0-9]|1[0-7][0-9])(\\.0{1,6})?))$";
-//        }
-        if (isLat) {
-            pattern = "^(\\+|-)?(?:90(?:\\.(?:\\d{1,6})?)?|(?:[0-9]|[1-8][0-9])(?:\\.(?:\\d{1,6})?))$";
-        } else {
-            pattern = "^(\\+|-)?(?:180(?:\\.(?:\\d{1,6})?)?|(?:[0-9]|[1-9][0-9]|1[0-7][0-9])(?:\\.(?:\\d{1,6})?))$";
+    public static boolean validateSubString(String stringz, boolean isLat) {
+
+
+        if (stringz.charAt(0) == '+' || stringz.charAt(0) == '-') {
+            stringz = stringz.substring(1);
+        }
+        int len = stringz.length();
+        if (!Character.isDigit(stringz.charAt(0)) || !Character.isDigit(stringz.charAt(len - 1))) {
+            return false;
         }
 
+        try {
+            double value = Double.parseDouble(stringz);
 
-        Pattern regex = Pattern.compile(pattern);
-        Matcher matcher = regex.matcher(stringz);
+            if (isLat && (value > 90 || value < -90)) {
+                return false;
+            }
 
-        return matcher.matches();
+            if (!isLat && (value > 180 || value < -180)) {
+                return false;
+            }
+        } catch (NumberFormatException e) {
+            return false; // Parsing to double failed, invalid format
+        }
+
+        return true;
     }
+
     public static String[] funcValid(String[] inputStr){
-        String[] answer = new String[100];
+        String[] answer = new String[inputStr.length];
         int size = inputStr.length;
         for(int i =0;i<size;i++){
             int strLen = inputStr[i].length();
@@ -50,15 +58,34 @@ public class LatituteLongitudeValidation {
                 answer[i]="Valid ";
             }
             else{answer[i]="Invalid ";
-        }}}
+        }
+
+                System.out.println(answer[i]);
+            }}
+
         return answer;
     }
 
 
     public static void main(String[] args){
-        String[] arr = {"(90,180)","(+90,+180","(90.0,180)","(90,180.1)","(85S,95W)"};
+        String[] arr =
+                {
+                "(75,180)",
+                "(+90.0,-147.45)",
+                "(77.11112223331,149.99999999)",
+                "(+90,+180)",
+                "(90,180)",
+                "(-90.00000,-180.0000)",
+                "(75,280)",
+                "(+190.0, -147.45)",
+                "(77.11112223331,249.99999999)",
+                "(+90,+180.2)",
+//                "(90.,180.)",
+//                "(-090.00000,-180.0000)"
+        };
+//        {"(90,180)","(+90,+180)","(90., 180)","(90.0,180.1)","(85S,95W)"};
         String[] res = funcValid(arr);
-        for(int i =0;i<5;i++){
+        for(int i =0;i<arr.length;i++){
             System.out.println(res[i]);
         }
     }
