@@ -1,5 +1,13 @@
-import java.util.ArrayList;
-import java.util.List;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.text.DecimalFormat;
+/**
+ * The Main class implements an application that reads lines from the standard input
+ * and prints them to the standard output.
+ */
 
 class MarketClass{
     int quantity;
@@ -9,104 +17,139 @@ class MarketClass{
         this.quantity=q;
     }
 }
+
 public class NaiveHedgeAlgo {
+    /**
+     * Iterate through each line of input.
+     */
+    public static void main(String[] args) throws IOException {
+        String inputData = "100 1850.00 200 1850.25 300 1850.50\n" +
+                "100 1849.75 200 1849.50 300 1849.25\n" +
+                "+10 0.20\n" +
+                "+15 -0.20\n" +
+                "-40 0.50";
+        DecimalFormat formatter = new DecimalFormat("0.00");
+//        List<String> lines = new ArrayList<>();
+        List<String> lines = Arrays.asList(inputData.split("\n"));
+
+        // buymarket parse
+        String[] withinStr = lines.get(0).split("\\s+");
+        List<MarketClass> buyMarket = new ArrayList<>();
+
+        for (int i = 0; i < withinStr.length; i += 2) {
+            int quantity = Integer.parseInt(withinStr[i]);
+            double price = Double.parseDouble(withinStr[i + 1]);
+            MarketClass marketClass = new MarketClass(quantity, price);
+            buyMarket.add(marketClass);
+        }
+        // sellmarket parse
+        String[] withinStr2 =  lines.get(1).split("\\s+");
+        List<MarketClass> sellMarket = new ArrayList<>();
+
+        for (int i = 0; i < withinStr2.length; i += 2) {
+            int quantity = Integer.parseInt(withinStr2[i]);
+            double price = Double.parseDouble(withinStr2[i + 1]);
+            MarketClass marketClass = new MarketClass(quantity, price);
+            sellMarket.add(marketClass);
+        }
+
+        // all trades parse
+        List<MarketClass> trades = new ArrayList<>();
+
+        for(int i =2;i<lines.size();i++){
+            String[] withinStr3 =  lines.get(i).split("\\s+");
+
+            int quantity = Integer.parseInt(withinStr3[0]);
+            double price = Double.parseDouble(withinStr3[1]);
+            MarketClass marketClass = new MarketClass(quantity, price);
+            trades.add(marketClass);
+        }
+
+        //     for(MarketClass m : buyMarket){
+        //   System.out.print(m.quantity +" "+m.price);
+        //  System.out.println();
+        // }
+        List<MarketClass> offsetTrade = getOffsetVal(buyMarket,sellMarket,trades);
+
+        for(MarketClass m : offsetTrade){
+            System.out.println(m.quantity+" "+formatter.format(m.price));
+        }
+    }
 
     public static  List<MarketClass> getOffsetVal(List<MarketClass> buyMarketClass,List<MarketClass> sellMarketClass,List<MarketClass> incTrade){
-            List<MarketClass> res = new ArrayList<>();
+        List<MarketClass> res = new ArrayList<>();
 
-            double totalRisk=0;
-            for(int i =0;i<incTrade.size();i++){
-                List<MarketClass> eachTrade = new ArrayList<>();
-                MarketClass m = incTrade.get(i);
-                totalRisk = totalRisk+(-1* m.quantity*m.price);
+        double totalRisk=0;
+        for(int i =0;i<incTrade.size();i++){
+            List<MarketClass> eachTrade = new ArrayList<>();
+            MarketClass m = incTrade.get(i);
+            totalRisk = totalRisk+(-1* m.quantity*m.price);
 
-                if(totalRisk<0){
-                    int iter =0;
-                    while(Math.abs((int)totalRisk) > 0 && iter<sellMarketClass.size()){
-                        MarketClass sellMarket  = sellMarketClass.get(iter);
+            if(totalRisk<0){
+                int iter =0;
+                while(Math.abs((int)totalRisk) > 0 && iter<sellMarketClass.size()){
+                    MarketClass sellMarket  = sellMarketClass.get(iter);
 
-                        if(sellMarket.quantity==0){
-                            iter++;
+                    if(sellMarket.quantity==0){
+                        iter++;
+                    }
+                    else{
+                        if(totalRisk<=sellMarket.quantity){
+                            int absRisk = (int)totalRisk;
+                            sellMarket.quantity +=absRisk;
+                            eachTrade.add(new MarketClass(absRisk,sellMarket.price));
+                            totalRisk-=absRisk;
                         }
                         else{
-                            if(totalRisk<=sellMarket.quantity){
-                                int absRisk = (int)totalRisk;
-                                sellMarket.quantity +=absRisk;
-                                eachTrade.add(new MarketClass(absRisk,sellMarket.price));
-                                totalRisk-=absRisk;
-                            }
-                            else{
                             totalRisk = totalRisk+sellMarket.quantity;
                             eachTrade.add(new MarketClass(sellMarket.quantity,sellMarket.price));
                             sellMarket.quantity=0;
-                            }
                         }
                     }
-                    double avgSum=0;
-                    int q=0;
-                    for(int j =0;j<eachTrade.size();j++){
-                        q=q+eachTrade.get(j).quantity;
-                        avgSum = avgSum + eachTrade.get(j).quantity*eachTrade.get(j).price;
-                    }
-                    res.add(new MarketClass(q,avgSum/q));
-                } else if (totalRisk>0) {
-                    int iter =0;
-                    while(Math.abs((int)totalRisk) > 0 && iter<buyMarketClass.size()){
-                        MarketClass buyMarket  = buyMarketClass.get(iter);
+                }
+                double avgSum=0;
+                int q=0;
+                for(int j =0;j<eachTrade.size();j++){
+                    q=q+eachTrade.get(j).quantity;
+                    avgSum = avgSum + eachTrade.get(j).quantity*eachTrade.get(j).price;
+                }
+                res.add(new MarketClass(q,avgSum/q));
+            } else if (totalRisk>0) {
+                int iter =0;
+                while(Math.abs((int)totalRisk) > 0 && iter<buyMarketClass.size()){
+                    MarketClass buyMarket  = buyMarketClass.get(iter);
 
-                        if(buyMarket.quantity==0){
-                            iter++;
+                    if(buyMarket.quantity==0){
+                        iter++;
+                    }
+                    else{
+                        if(totalRisk<=buyMarket.quantity){
+                            int absRisk = (int)totalRisk;
+                            buyMarket.quantity +=absRisk;
+                            eachTrade.add(new MarketClass(absRisk,buyMarket.price));
+                            totalRisk-=absRisk;
                         }
                         else{
-                            if(totalRisk<=buyMarket.quantity){
-                                int absRisk = (int)totalRisk;
-                                buyMarket.quantity +=absRisk;
-                                eachTrade.add(new MarketClass(absRisk,buyMarket.price));
-                                totalRisk-=absRisk;
-                            }
-                            else{
-                                totalRisk = totalRisk+buyMarket.quantity;
-                                eachTrade.add(new MarketClass(buyMarket.quantity,buyMarket.price));
-                                buyMarket.quantity=0;
-                            }
+                            totalRisk = totalRisk+buyMarket.quantity;
+                            eachTrade.add(new MarketClass(buyMarket.quantity,buyMarket.price));
+                            buyMarket.quantity=0;
                         }
                     }
-                    double avgSum=0;
-                    int q=0;
-                    for(int j =0;j<eachTrade.size();j++){
-                        q=q+eachTrade.get(j).quantity;
-                        avgSum = avgSum + eachTrade.get(j).quantity*eachTrade.get(j).price;
-                    }
-                    res.add(new MarketClass(q,avgSum/q));
-
                 }
+                double avgSum=0;
+                int q=0;
+                for(int j =0;j<eachTrade.size();j++){
+                    q=q+eachTrade.get(j).quantity;
+                    avgSum = avgSum + eachTrade.get(j).quantity*eachTrade.get(j).price;
+                }
+                res.add(new MarketClass(q,avgSum/q));
 
             }
 
-
-            return res;
-    }
-    public static void main(String[] args) {
-        System.out.println("Test 1: ");
-        List<MarketClass> buyMarketClasses = new ArrayList<>();
-        buyMarketClasses.add(new MarketClass(100, 1850));
-        buyMarketClasses.add(new MarketClass(200, 1850.25));
-        buyMarketClasses.add(new MarketClass(300, 1850.5));
-
-        List<MarketClass> sellMarketClasses = new ArrayList<>();
-        sellMarketClasses.add(new MarketClass(100, 1849.75));
-        sellMarketClasses.add(new MarketClass(200, 1849.5));
-        sellMarketClasses.add(new MarketClass(300, 1849.25));
-
-        List<MarketClass> trades = new ArrayList<>();
-        trades.add(new MarketClass(10, .2));
-        trades.add(new MarketClass(15, -.2));
-        trades.add(new MarketClass(-40, .5));
-
-        List<MarketClass> finalList1 = getOffsetVal(buyMarketClasses, sellMarketClasses, trades);
-
-        for (int i = 0; i < finalList1.size(); i++) {
-            System.out.println(finalList1.get(i).quantity + " " + finalList1.get(i).price);
         }
+
+
+        return res;
     }
+
 }
