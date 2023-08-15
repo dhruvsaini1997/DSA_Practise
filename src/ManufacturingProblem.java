@@ -76,45 +76,55 @@ public class ManufacturingProblem
     static Double mySolution(String targetProductName, HashSet<Product> allProducts)
     {
         // ADD IMPLEMENTATION HERE
+        double minCost = Double.MAX_VALUE;
 
+        Map<String, Double> productCostMap = new HashMap<>();
+        Map<String,HashSet<String>> productRawMaterialMap = new HashMap<>();
 
-        Map<String, Double> product_cost_map = new HashMap<>();
-        Map<String,List<String>> raw_material_map = new HashMap<>();
-
-        for( Product product :  allProducts){
-            product_cost_map.put(product.ProductName,product.PriceToPurchase);
-            raw_material_map.put(product.ProductName,new ArrayList<>(product.InputProducts));
+        for( Product p :  allProducts) {
+            productCostMap.put(p.ProductName, p.PriceToPurchase);
+            productRawMaterialMap.put(p.ProductName, p.InputProducts);
         }
 
-        double min = Double.MAX_VALUE;
+        // if target cost is not null, make it default minCost
 
-        if(product_cost_map.containsKey(targetProductName) && product_cost_map.get(targetProductName)!=null){
-            min = product_cost_map.get(targetProductName);
+        if(productCostMap.containsKey(targetProductName)
+                && productCostMap.get(targetProductName)!=null){
+            minCost = productCostMap.get(targetProductName);
         }
-        List<String> target_raw_material = raw_material_map.get(targetProductName);
-        List<String> final_raw =new ArrayList<>();
-        double raw_sum =0;
 
+        //Taking raw material required for target
+        HashSet<String> target_raw_material = productRawMaterialMap.get(targetProductName);
+        double rawMaterialSum =0;
 
         for(String raw : target_raw_material){
-            raw_sum = raw_sum + getMinCost(product_cost_map,raw_material_map,raw);
+            rawMaterialSum = rawMaterialSum + getMinCost(productCostMap,productRawMaterialMap,raw);
         }
 
-        return min>raw_sum?raw_sum:min;
+        if(minCost>rawMaterialSum){
+            return rawMaterialSum;
+        }
+
+        return minCost;
 
     }
 
-    public static double getMinCost(Map<String,Double> product_cost, Map<String,List<String>> raw_material_map, String target){
+    public static double getMinCost(Map<String,Double> productCostMap, Map<String,HashSet<String>> productRawMaterialMap, String targetProduct){
+
         double min = Double.MAX_VALUE;
-        if(product_cost.get(target)!=null) {
-            min = product_cost.get(target);
+        Double targetCost = productCostMap.get(targetProduct);
+        if(targetCost!=null) {
+            min = targetCost;
         }
-        if(raw_material_map.get(target).size()!=0){
 
-            double cost =0;
-            for(String raw : raw_material_map.get(target)){
+        Set<String> targetRawMaterials = productRawMaterialMap.get(targetProduct);
 
-                cost=cost+ getMinCost(product_cost,raw_material_map,raw);
+        if(targetRawMaterials!=null && !targetRawMaterials.isEmpty()){
+
+            double cost = 0;
+            for(String raw : targetRawMaterials){
+
+                cost += getMinCost(productCostMap,productRawMaterialMap,raw);
             }
             min = Math.min(min,cost);
         }
