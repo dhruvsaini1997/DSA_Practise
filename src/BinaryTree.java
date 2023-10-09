@@ -83,4 +83,13 @@ public class BinaryTree {
         dfs_arr(node.left,arr);
         dfs_arr(node.right,arr);
     }
+    public boolean isValidBst(TreeNode tree,Integer min,Integer max){
+        if(tree==null){
+            return true;
+        }
+        else if ((min!=null && tree.value<= min ) || (max!=null && max<= tree.value)) {
+            return false;
+        }
+        return isValidBst(tree.left,min, tree.value) && isValidBst(tree.right, tree.value, max);
+    }
 }
